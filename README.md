@@ -4,6 +4,8 @@ Transforma um PC antigo com Linux Mint na central de entretenimento da sala: **j
 
 Projeto real, rodando em um **Core 2 Duo E8500, 5,7 GB de RAM e GeForce 210** (hardware de 2008).
 
+![Portal Retro TV na tela](docs/imagens/portal.png)
+
 ## O que o portal faz
 
 | Guia | O que abre | Como |
