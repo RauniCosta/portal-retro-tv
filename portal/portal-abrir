@@ -1,0 +1,42 @@
+#!/bin/bash
+# Abre um servico no Google Chrome em tela cheia (Chrome tem Widevine, o DRM
+# que Netflix, HBO Max, Disney+ e Prime Video exigem). Uso: portal-abrir "Nome"
+# Para adicionar servicos: inclua uma linha abaixo e um arquivo vazio
+# em /homelab/pegasus/apps/streaming/ (ou filmes/) com o mesmo nome (ex.: Netflix.app).
+# Select+Start no controle fecha o Chrome e volta ao Pegasus (portal-saida.py).
+
+# Log de diagnostico (qualquer usuario pode ler): /tmp/portal-abrir.log
+exec >>/tmp/portal-abrir.log 2>&1
+echo "=== $(date '+%F %T') args: $* | user: $(id -un) | HOME=$HOME | DISPLAY=${DISPLAY:-vazio}"
+
+export DISPLAY="${DISPLAY:-:0}"
+export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
+
+case "$1" in
+  Jellyfin)      URL="http://localhost:8096" ;;
+  Netflix)       URL="https://www.netflix.com" ;;
+  YouTube)       URL="https://www.youtube.com" ;;
+  "Disney+")     URL="https://www.disneyplus.com" ;;
+  "Prime Video") URL="https://www.primevideo.com" ;;
+  "HBO Max")     URL="https://www.hbomax.com" ;;
+  Globoplay)     URL="https://globoplay.globo.com" ;;
+  *)             URL="$1" ;;
+esac
+echo "URL: $URL"
+
+# Vigia Select+Start no controle enquanto o Chrome estiver aberto
+python3 /usr/local/bin/portal-saida.py &
+VIGIA=$!
+
+# Perfil proprio do portal: os logins ficam salvos entre uma sessao e outra.
+google-chrome \
+  --kiosk \
+  --user-data-dir="$HOME/.config/portal-chrome" \
+  --no-first-run \
+  --no-default-browser-check \
+  --password-store=basic \
+  --autoplay-policy=no-user-gesture-required \
+  "$URL"
+echo "chrome saiu com codigo $?"
+
+kill "$VIGIA" 2>/dev/null

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel do Homelab</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f5f6f8; --card:#fff; --txt:#1c2024; --mut:#667085; --ok:#2e9e5b; --bar:#3b82f6; --brd:#e3e6ea; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14171a; --card:#1d2125; --txt:#e8eaed; --mut:#98a2b3; --brd:#2b3137; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.4 system-ui, sans-serif; background:var(--bg); color:var(--txt); }
+  main { max-width:900px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--mut); margin-bottom:20px; }
+  .grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); }
+  .card { background:var(--card); border:1px solid var(--brd); border-radius:10px; padding:16px; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--mut); margin:0 0 10px; }
+  .big { font-size:24px; font-weight:600; }
+  .bar { height:8px; background:var(--brd); border-radius:4px; overflow:hidden; margin:8px 0 6px; }
+  .bar > span { display:block; height:100%; background:var(--bar); }
+  .mut { color:var(--mut); font-size:13px; }
+  ul { list-style:none; padding:0; margin:0; }
+  li { padding:6px 0; border-top:1px solid var(--brd); display:flex; justify-content:space-between; gap:8px; }
+  li:first-child { border-top:0; }
+  a { color:var(--bar); text-decoration:none; }
+  .ok { color:var(--ok); }
+  #erro { color:#d92d20; display:none; margin-bottom:12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="host">Homelab</h1>
+  <div class="sub" id="sub">carregando...</div>
+  <div id="erro">Sem resposta do servidor.</div>
+  <div class="grid">
+    <div class="card"><h2>Memoria</h2><div class="big" id="mem-txt">-</div><div class="bar"><span id="mem-bar" style="width:0"></span></div><div class="mut" id="swap-txt"></div></div>
+    <div class="card"><h2>Disco (/)</h2><div class="big" id="disco-txt">-</div><div class="bar"><span id="disco-bar" style="width:0"></span></div><div class="mut" id="disco-sub"></div></div>
+    <div class="card"><h2>Carga</h2><div class="big" id="carga">-</div><div class="mut">media de 1, 5 e 15 min</div></div>
+    <div class="card"><h2>Containers</h2><ul id="containers"></ul></div>
+    <div class="card"><h2>Servicos</h2><ul id="servicos"></ul></div>
+  </div>
+</main>
+<script>
+const gb = b => (b / 1024 ** 3).toFixed(1) + " GB";
+const pct = (a, b) => Math.round((a / b) * 100);
+function duracao(s) {
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+  return (d ? d + "d " : "") + h + "h " + m + "min";
+}
+function limpar(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+function item(el, esq, dir) {
+  const li = document.createElement("li");
+  const a = document.createElement("span"); a.textContent = esq;
+  li.appendChild(a);
+  if (dir instanceof Node) li.appendChild(dir);
+  else { const b = document.createElement("span"); b.className = "mut"; b.textContent = dir; li.appendChild(b); }
+  el.appendChild(li);
+}
+async function atualizar() {
+  try {
+    const r = await fetch("/api/status", { cache: "no-store" });
+    const s = await r.json();
+    document.getElementById("erro").style.display = "none";
+    document.getElementById("host").textContent = s.host;
+    document.getElementById("sub").textContent = "ligado ha " + duracao(s.uptime);
+    const usada = s.memoria.total - s.memoria.disponivel;
+    document.getElementById("mem-txt").textContent = gb(usada) + " / " + gb(s.memoria.total);
+    document.getElementById("mem-bar").style.width = pct(usada, s.memoria.total) + "%";
+    document.getElementById("swap-txt").textContent = "swap: " + gb(s.memoria.swap_usada) + " de " + gb(s.memoria.swap_total);
+    document.getElementById("disco-txt").textContent = gb(s.disco.usado) + " / " + gb(s.disco.total);
+    document.getElementById("disco-bar").style.width = pct(s.disco.usado, s.disco.total) + "%";
+    document.getElementById("disco-sub").textContent = gb(s.disco.livre) + " livres";
+    document.getElementById("carga").textContent = s.carga.map(n => n.toFixed(2)).join("  ");
+    const c = document.getElementById("containers"); limpar(c);
+    if (s.containers === null) item(c, "docker indisponivel", "");
+    else if (!s.containers.length) item(c, "nenhum em execucao", "");
+    else s.containers.forEach(x => item(c, x.nome, x.status));
+    const sv = document.getElementById("servicos"); limpar(sv);
+    s.servicos.forEach(x => {
+      const a = document.createElement("a");
+      a.href = location.protocol + "//" + location.hostname + ":" + x.porta;
+      a.target = "_blank"; a.rel = "noopener"; a.textContent = "abrir";
+      item(sv, x.nome, a);
+    });
+  } catch (e) {
+    document.getElementById("erro").style.display = "block";
+  }
+}
+atualizar();
+setInterval(atualizar, 5000);
+</script>
+</body>
+</html>

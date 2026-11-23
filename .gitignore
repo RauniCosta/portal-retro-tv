@@ -1,0 +1,45 @@
+# Conteúdo com direitos autorais e dados pessoais: nunca versionar
+*.zip
+*.7z
+*.nes
+*.sfc
+*.smc
+*.md
+!README.md
+!docs/*.md
+*.gba
+*.gb
+*.gbc
+*.n64
+*.z64
+*.v64
+*.bin
+*.cue
+*.iso
+*.chd
+*.pbp
+gamelist.xml
+images/
+videos/
+bios/
+
+# Segredos e logs
+*.pass
+*.key
+*.env
+.env*
+*.log
+*.bak*
+*.antigo
+
+# Temas de terceiros (clonar separadamente)
+temas/
+
+# Imagens e capturas locais
+prints/
+fotos/*.txt
+fotos/*.json
+fotos/*.csv
+
+__pycache__/
+*.pyc
